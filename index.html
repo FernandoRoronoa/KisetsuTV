@@ -55,7 +55,11 @@ header.top{
   transition:padding .25s ease;
 }
 .top-in{width:var(--max);max-width:100%;margin:0 auto;padding:14px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:25px;letter-spacing:.02em;line-height:1}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:25px;letter-spacing:.02em;line-height:1;
+  border:0;background:none;color:var(--text);padding:0;cursor:pointer;transition:opacity .2s}
+.brand:hover{opacity:.82}
+.brand .tv{transition:transform .22s cubic-bezier(.2,.9,.3,1.4)}
+.brand:hover .tv{transform:scale(1.12)}
 .brand b{color:var(--shu)}
 .brand em{font-family:var(--body);font-style:normal;font-weight:700;font-size:11px;color:var(--muted);letter-spacing:.14em;margin-left:2px;align-self:center}
 .brand .tv{width:30px;height:22px;border:2px solid var(--shu);border-radius:5px;position:relative;flex:0 0 auto}
@@ -87,6 +91,9 @@ header.top{
 }
 .season-tab:hover{transform:translateY(-2px);color:var(--text)}
 .season-tab[aria-selected="true"]{background:linear-gradient(135deg,var(--shu),#ff8a3d);color:#fff;border-color:transparent}
+
+.viewbar{display:flex;justify-content:flex-end;margin:20px 0 -8px}
+@media(max-width:560px){.viewbar{justify-content:stretch}.viewbar .views{width:100%;justify-content:space-between}.viewbar .views button{flex:1}}
 
 /* ---------- héroe ---------- */
 .hero{display:flex;gap:28px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;padding:30px 0 22px}
@@ -293,16 +300,11 @@ footer a{color:var(--text)}
 
 <header class="top">
   <div class="top-in">
-    <div class="brand"><span class="tv" aria-hidden="true"></span>KISETSU<b>TV</b><em lang="ja">季節</em></div>
+    <button class="brand" id="ir-actual" type="button" title="Ir a la temporada actual" aria-label="Ir a la temporada actual"><span class="tv" aria-hidden="true"></span>KISETSU<b>TV</b><em lang="ja">季節</em></button>
     <div class="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
       <label class="sr" for="q" hidden>Buscar</label>
       <input id="q" type="search" placeholder="Buscar título, estudio o plataforma…" autocomplete="off">
-    </div>
-    <div class="views" role="group" aria-label="Vista">
-      <button id="v-grid" aria-pressed="true">Rejilla</button>
-      <button id="v-list" aria-pressed="false">Lista</button>
-      <button id="v-cal" aria-pressed="false">Calendario</button>
     </div>
   </div>
   <div class="seasons" id="seasons" role="tablist" aria-label="Temporadas"></div>
@@ -336,6 +338,15 @@ footer a{color:var(--text)}
       <span class="count" id="count"></span>
     </div>
   </section>
+
+
+  <div class="viewbar">
+    <div class="views" role="group" aria-label="Vista">
+      <button id="v-grid" aria-pressed="true">Rejilla</button>
+      <button id="v-list" aria-pressed="false">Lista</button>
+      <button id="v-cal" aria-pressed="false">Calendario</button>
+    </div>
+  </div>
 
   <div id="out"></div>
 
@@ -890,6 +901,29 @@ $("#f-clear").addEventListener("click", () => {
   });
 });
 try { const v = localStorage.getItem("anitemp.view"); if (v) { S.view = v; const m = {grid:"#v-grid", list:"#v-list", cal:"#v-cal"}[v]; if (m) { ["#v-grid","#v-list","#v-cal"].forEach(s => $(s).setAttribute("aria-pressed", s === m ? "true" : "false")); } } } catch (e) {}
+
+
+/* ---------- ir a la temporada en curso ---------- */
+function indiceTemporadaActual() {
+  if (!S.data) return -1;
+  const orden = ["WINTER", "SPRING", "SUMMER", "FALL"];
+  const hoy = new Date(); let y = hoy.getFullYear(); const m = hoy.getMonth() + 1; let i;
+  if (m === 12) { i = 0; y++; } else if (m <= 2) i = 0; else if (m <= 5) i = 1; else if (m <= 8) i = 2; else i = 3;
+  return S.data.temporadas.findIndex(t => t.season === orden[i] && t.year === y);
+}
+function irATemporada(i) {
+  if (!S.data || i < 0) return;
+  if (i !== S.season) {
+    S.season = i; S.fmt.clear(); S.plat.clear(); S.genre = "";
+    location.hash = slug(S.data.temporadas[i].nombre);
+    pintarTemporadas(); pintarCabecera(); pintarFiltros(); render();
+  }
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+$("#ir-actual").addEventListener("click", () => {
+  const i = indiceTemporadaActual();
+  irATemporada(i >= 0 ? i : 0);
+});
 
 window.addEventListener("hashchange", () => {
   const h = location.hash.replace("#", "");
